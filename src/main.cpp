@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <ESPmDNS.h>
-#include <ArduinoOTA.h>
 #include <WebServer.h>
 #include <math.h>
 #include <Thermistor.h>
@@ -9,14 +8,16 @@
 #include <Nanoshield_ADC.h>
 
 #include "hardware.h"
+#include "OTAUpdate.h"
 #include "server.h"
 #include "temperature.h"
 
 
 /* #region VARIABLES DECLARATIONS */
 
+extern bool ota_uploading;
+
 bool
-    uploading = false,
     saidaRele2 = false,
     saidaRele3 = false,
     saidaRele4 = false;
@@ -143,60 +144,7 @@ void setup()
 
   setupWifi_APMode();
 
-  Serial.print("\nInitializing OTA... ");
-  /* #region   */
-  ArduinoOTA.onStart([]()
-                     {
-                          detachInterrupt(PIN_DETECT);
-                          //timerEnd(timer_100ms);
-                          server.stop();
-                          uploading = true;
-                           String type;
-                           if (ArduinoOTA.getCommand() == U_FLASH)
-                           {
-                               type = "sketch";
-                           }
-                           else
-                           { // U_FS
-                               type = "filesystem";
-                           }
-                           // NOTE: if updating FS this would be the place to unmount FS using FS.end()
-                           Serial.println("Start updating " + type); });
-  ArduinoOTA.onEnd([]()
-                   { Serial.println("\nEnd"); });
-  ArduinoOTA.onProgress([](unsigned int progress, unsigned int total)
-                        {
-                              digitalWrite(LED_PIN, HIGH);
-                              Serial.printf("Progress: %u%%\r", (progress / (total / 100)));
-                              digitalWrite(LED_PIN, LOW); });
-  ArduinoOTA.onError([](ota_error_t error)
-                     {
-                           Serial.printf("Error[%u]: ", error);
-                           if (error == OTA_AUTH_ERROR)
-                           {
-                               Serial.println("Auth Failed");
-                           }
-                           else if (error == OTA_BEGIN_ERROR)
-                           {
-                               Serial.println("Begin Failed");
-                           }
-                           else if (error == OTA_CONNECT_ERROR)
-                           {
-                               Serial.println("Connect Failed");
-                           }
-                           else if (error == OTA_RECEIVE_ERROR)
-                           {
-                               Serial.println("Receive Failed");
-                           }
-                           else if (error == OTA_END_ERROR)
-                           {
-                               Serial.println("End Failed");
-                           } });
-  ArduinoOTA.setHostname(HOST);
-  ArduinoOTA.begin();
-  Serial.println("OK");
-  Serial.printf(".Hostname: %s.local\n", ArduinoOTA.getHostname());
-  /* #endregion */
+  setupOTAUpdate();
 
   Serial.print("\nInitializing Web Server...");
   server.begin();
@@ -244,7 +192,7 @@ void setup()
 void loop()
 {
   ArduinoOTA.handle();
-  while (uploading)
+  while (ota_uploading)
   {
     ArduinoOTA.handle();
   };
