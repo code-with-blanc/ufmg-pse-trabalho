@@ -153,7 +153,7 @@ void setup()
   Serial.println("Ok");
   /* #endregion */
 
-  setupServer();
+  setupWifi_APMode();
 
   Serial.print("\nInitializing OTA... ");
   /* #region   */
@@ -215,19 +215,19 @@ void setup()
   Serial.println("OK");
 
   //*
-  Serial.println("Initializing Zero Cross Detector... ");
+  // Serial.println("Initializing Zero Cross Detector... ");
 
-  while (digitalRead(PIN_DETECT))
-    ;
-  while (!digitalRead(PIN_DETECT))
-    ;
-  micro_rising_edge = micros();
-  while (digitalRead(PIN_DETECT))
-    ;
-  tempo_pulso = micros() - micro_rising_edge;
+  // while (digitalRead(PIN_DETECT))
+  //   ;
+  // while (!digitalRead(PIN_DETECT))
+  //   ;
+  // micro_rising_edge = micros();
+  // while (digitalRead(PIN_DETECT))
+  //   ;
+  // tempo_pulso = micros() - micro_rising_edge;
 
-  Serial.print("Tempo de duracao do pulso na entrada ");
-  Serial.println(tempo_pulso);
+  // Serial.print("Tempo de duracao do pulso na entrada ");
+  // Serial.println(tempo_pulso);
 
   //*/
   Serial.print("Initializing ADC ");

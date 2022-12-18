@@ -28,7 +28,22 @@ float
 extern float temperatura, temperatura2;
 extern volatile unsigned long micros_dif;
 
-void setupServer()
+
+void setupWifi_APMode()
+{
+    Serial.println("\n[*] Creating AP");
+    WiFi.mode(WIFI_AP);
+    // WiFi.softAPConfig(
+    //     IPAddress(192, 168, 0, 1),
+    //     IPAddress(192, 168, 0, 1),
+    //     IPAddress(255, 255, 255, 0)
+    // );
+    WiFi.softAP("Brassagem");
+    Serial.print("[+] AP Created with IP Gateway ");
+    Serial.println(WiFi.softAPIP());
+}
+
+void setupWifi_StationMode()
 {
     Serial.println("\nInitializing Wifi");
     /* #region   */
@@ -70,7 +85,6 @@ void serverHandler()
     {
         // Fazemos a leitura da requisição
         String req = client.readStringUntil('\r');
-        // Serial.println(req);
 
         // A partir daqui, verificamos se a requisição possui algum comando de
         // ajuste de sinal
