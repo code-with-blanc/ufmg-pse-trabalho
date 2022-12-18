@@ -8,22 +8,10 @@
 #include <ESP32TimerInterrupt.h>
 #include <Nanoshield_ADC.h>
 
-#include "server.h"
 #include "hardware.h"
+#include "server.h"
+#include "temperature.h"
 
-/* #region DEFINES  */
-
-#define CONSTANTE_RESISTENCIA_1 10000
-#define CONSTANTE_A_TEMP_1 0.001129148
-#define CONSTANTE_B_TEMP_1 0.000234125
-#define CONSTANTE_C_TEMP_1 0.0000000876741
-
-#define CONSTANTE_RESISTENCIA_2 10000
-#define CONSTANTE_A_TEMP_2 0.001129148
-#define CONSTANTE_B_TEMP_2 0.000234125
-#define CONSTANTE_C_TEMP_2 0.0000000876741
-
-/* #endregion */
 
 /* #region VARIABLES DECLARATIONS */
 
@@ -42,8 +30,8 @@ int
 float
     leituraVcc,
     leituraVcc2,
-    invTemperaturaK,
-    invTemperaturaK2,
+    resistencia,
+    resistencia2,
     temperatura,
     temperatura2;
 
@@ -262,21 +250,14 @@ void loop()
   };
   serverHandler();
 
-  leituraVcc = adc.readVoltage(0);
-  if (leituraVcc > 3.28)
-    leituraVcc = 2;
-  resistencia = CONSTANTE_RESISTENCIA_1 * leituraVcc / (3.29 - leituraVcc);
-  invTemperaturaK = CONSTANTE_A_TEMP_1 + CONSTANTE_B_TEMP_1 * log(resistencia) + CONSTANTE_C_TEMP_1 * pow(log(resistencia), 3);
-  if (invTemperaturaK != 0.0)
-    temperatura = -273.15 + 1.0 / invTemperaturaK;
-
-  leituraVcc2 = adc.readVoltage(1);
-  if (leituraVcc2 > 3.28)
-    leituraVcc2 = 2;
-  resistencia2 = CONSTANTE_RESISTENCIA_2 * leituraVcc2 / (3.29 - leituraVcc2);
-  invTemperaturaK2 = CONSTANTE_A_TEMP_2 + CONSTANTE_B_TEMP_2 * log(resistencia2) + CONSTANTE_C_TEMP_2 * pow(log(resistencia2), 3);
-  if (invTemperaturaK2 != 0.0)
-    temperatura2 = -273.15 + 1.0 / invTemperaturaK2;
+  
+  float adcReading = adc.readVoltage(0);
+  resistencia = resistanceFromAdc(adcReading);
+  temperatura = temperatureFromResistance(resistencia);
+  
+  float adcReading2 = adc.readVoltage(0);
+  resistencia2 = resistanceFromAdc(adcReading);
+  temperatura2 = temperatureFromResistance(resistencia);
 
   if (controleAutomatico)
   {

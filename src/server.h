@@ -20,12 +20,13 @@ bool
     saidaRele1 = false;
 
 float
-    resistencia,
-    resistencia2,
     setpoint = 20.0,
     tolerancia = 0.5;
 
-extern float temperatura, temperatura2;
+// data to be printed from temperature sensors
+extern float resistencia, resistencia2, temperatura, temperatura2;
+
+// data to be printed from zero crossing
 extern volatile unsigned long micros_dif;
 
 
