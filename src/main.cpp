@@ -29,7 +29,7 @@ volatile int
 volatile unsigned long
     micros_dif,
     micros_count,
-    tempo_pulso;
+    zero_cross_pulse_time;
 /* #endregion */
 
 /* #region CLASS DECLARATIONS */
@@ -47,7 +47,7 @@ portMUX_TYPE mux = portMUX_INITIALIZER_UNLOCKED;
 void IRAM_ATTR ISR_detect_zero()
 {
   portENTER_CRITICAL_ISR(&mux);
-  if ((micros() - micros_count) > (2 * tempo_pulso))
+  if ((micros() - micros_count) > (2 * zero_cross_pulse_time))
   {
     count_detected++;
     micros_count = micros();
@@ -77,6 +77,8 @@ void IRAM_ATTR ISR_timer_100ms()
     flag_1s = true;
   }
 }
+
+unsigned long detect_zero_cross_pulse_time();
 
 void setup()
 {
@@ -118,19 +120,11 @@ void setup()
   Serial.println("OK");
 
   //*
-  // Serial.println("Initializing Zero Cross Detector... ");
+  Serial.println("Initializing Zero Cross Detector... ");
 
-  // while (digitalRead(PIN_ZERO_CROSS))
-  //   ;
-  // while (!digitalRead(PIN_ZERO_CROSS))
-  //   ;
-  // unsigned long micro_rising_edge = micros();
-  // while (digitalRead(PIN_ZERO_CROSS))
-  //   ;
-  // tempo_pulso = micros() - micro_rising_edge;
-
-  // Serial.print("Tempo de duracao do pulso na entrada ");
-  // Serial.println(tempo_pulso);
+  zero_cross_pulse_time = detect_zero_cross_pulse_time();
+  Serial.print("Tempo de duracao do pulso na entrada ");
+  Serial.println(zero_cross_pulse_time);
 
   //*/
   Serial.print("Initializing ADC ");
@@ -193,4 +187,31 @@ void loop()
     digitalWrite(LED_PIN, !digitalRead(LED_PIN));
     flag_1s = false;
   }
+}
+
+unsigned long detect_zero_cross_pulse_time() {
+  unsigned long start_time = micros();
+  const unsigned long timeout_us = 300000; // 300ms
+  const unsigned long timeout_response = 500;  // 0.5ms
+
+  // wait zc pin = 0
+  while (digitalRead(PIN_ZERO_CROSS)) {
+    if(micros() - start_time > timeout_us)
+      return timeout_response;
+  }
+
+  // wait zc pin = 1
+  while (!digitalRead(PIN_ZERO_CROSS)) {
+    if(micros() - start_time > timeout_us)
+      return timeout_response;
+  }
+  unsigned long micro_rising_edge = micros();
+
+  // wait zc pin = 0
+  while (digitalRead(PIN_ZERO_CROSS)) {
+    if(micros() - start_time > timeout_us) {
+      return timeout_response;
+    }
+  }
+  return micros() - micro_rising_edge;
 }
