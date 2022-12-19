@@ -28,11 +28,6 @@ void setupWifi_APMode()
 {
     Serial.println("\n[*] Creating AP");
     WiFi.mode(WIFI_AP);
-    // WiFi.softAPConfig(
-    //     IPAddress(192, 168, 0, 1),
-    //     IPAddress(192, 168, 0, 1),
-    //     IPAddress(255, 255, 255, 0)
-    // );
     WiFi.softAP("Brassagem");
     Serial.print("[+] AP Created with IP Gateway ");
     Serial.println(WiFi.softAPIP());

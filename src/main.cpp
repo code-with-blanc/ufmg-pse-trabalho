@@ -18,33 +18,18 @@
 extern bool ota_uploading;
 extern sensor_info_t sensor_info;
 
-bool
-    saidaRele2 = false,
-    saidaRele3 = false,
-    saidaRele4 = false;
-
-int
-    pulsosContados,
-    tempoAnterior,
-    tempoAtual,
-    tempoDif;
-
 volatile bool
-    detected = false,
     flag_100ms,
     flag_1s;
 
 volatile int
     count_detected,
-    count_timer_1s;
+    count_timer_100ms;
 
 volatile unsigned long
     micros_dif,
     micros_count,
-    micros_count_ant,
-    micro_rising_edge,
-    tempo_pulso,
-    tempo_atraso_total;
+    tempo_pulso;
 /* #endregion */
 
 /* #region CLASS DECLARATIONS */
@@ -53,7 +38,6 @@ Nanoshield_ADC adc;
 
 //*
 hw_timer_t *timer_saida_1 = NULL;
-hw_timer_t *timer_saida_2 = NULL;
 hw_timer_t *timer_100ms = NULL;
 //*/
 
@@ -85,11 +69,11 @@ void IRAM_ATTR ISR_pulsar_saida_1()
 
 void IRAM_ATTR ISR_timer_100ms()
 {
-  count_timer_1s++;
+  count_timer_100ms++;
   flag_100ms = true;
-  if (count_timer_1s >= 10)
+  if (count_timer_100ms >= 10)
   {
-    count_timer_1s = 0;
+    count_timer_100ms = 0;
     flag_1s = true;
   }
 }
@@ -112,20 +96,14 @@ void setup()
   Serial.print("\nConfiguring digital pins... ");
   /* #region   */
 
-  pinMode(PIN_DETECT, INPUT);
+  pinMode(PIN_ZERO_CROSS, INPUT);
   pinMode(PIN_DISPARO_1, OUTPUT);
   pinMode(PIN_DISPARO_2, OUTPUT);
   pinMode(PIN_RELE_1, OUTPUT);
-  pinMode(PIN_RELE_2, OUTPUT);
-  pinMode(PIN_RELE_3, OUTPUT);
-  pinMode(PIN_RELE_4, OUTPUT);
 
   digitalWrite(PIN_DISPARO_1, LOW); // Inicia o GPIO em nível baixo
   digitalWrite(PIN_DISPARO_2, LOW);
   digitalWrite(PIN_RELE_1, HIGH);
-  digitalWrite(PIN_RELE_2, HIGH);
-  digitalWrite(PIN_RELE_3, HIGH);
-  digitalWrite(PIN_RELE_4, HIGH);
 
   delay(5); // Wait digital output take effect
   Serial.println("Ok");
@@ -142,12 +120,12 @@ void setup()
   //*
   // Serial.println("Initializing Zero Cross Detector... ");
 
-  // while (digitalRead(PIN_DETECT))
+  // while (digitalRead(PIN_ZERO_CROSS))
   //   ;
-  // while (!digitalRead(PIN_DETECT))
+  // while (!digitalRead(PIN_ZERO_CROSS))
   //   ;
-  // micro_rising_edge = micros();
-  // while (digitalRead(PIN_DETECT))
+  // unsigned long micro_rising_edge = micros();
+  // while (digitalRead(PIN_ZERO_CROSS))
   //   ;
   // tempo_pulso = micros() - micro_rising_edge;
 
@@ -171,7 +149,7 @@ void setup()
   timerAlarmWrite(timer_saida_1, 1000, false);
   timerAlarmEnable(timer_saida_1);
   //*/
-  attachInterrupt(digitalPinToInterrupt(PIN_DETECT), ISR_detect_zero, RISING);
+  attachInterrupt(digitalPinToInterrupt(PIN_ZERO_CROSS), ISR_detect_zero, RISING);
   Serial.println("OK");
   /* #endregion */
 
@@ -180,6 +158,10 @@ void setup()
 
 void loop()
 {
+  static int tempoAnterior;
+  static int tempoAtual;
+  static int tempoDif;
+
   ArduinoOTA.handle();
   while (ota_uploading)
   {
@@ -204,7 +186,6 @@ void loop()
 
   if (flag_1s)
   {
-    pulsosContados = count_detected;
     count_detected = 0;
     tempoAnterior = tempoAtual;
     tempoAtual = millis();

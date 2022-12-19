@@ -14,7 +14,7 @@ void setupOTAUpdate() {
 
       ArduinoOTA.onStart([]()
                      {
-                          detachInterrupt(PIN_DETECT);
+                          detachInterrupt(PIN_ZERO_CROSS);
                           //timerEnd(timer_100ms);
                           server.stop();
                           ota_uploading = true;
