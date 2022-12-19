@@ -2,6 +2,8 @@
 #define _SERVER_H_
 
 #include "hardware.h"
+#include "control.h"
+
 
 const char *HOST = "esp32";              // Host name to mDNS and SSDP
 const char *SSID = "BLINK_CASA_RODRIGO"; // Wifi Network SSID
@@ -13,18 +15,10 @@ IPAddress subnet(255, 255, 255, 0);
 
 WiFiServer server(80);
 
-bool
-    controleAutomatico,
-    controleManual,
-    desligarAutoRefresh = false,
-    saidaRele1 = false;
+extern control_info_t control_info;
+extern sensor_info_t sensor_info;
 
-float
-    setpoint = 20.0,
-    tolerancia = 0.5;
-
-// data to be printed from temperature sensors
-extern float resistencia, resistencia2, temperatura, temperatura2;
+bool desligarAutoRefresh = false;
 
 // data to be printed from zero crossing
 extern volatile unsigned long micros_dif;
@@ -110,26 +104,24 @@ void serverHandler()
             int start_of_number = req.indexOf("setpoint=") + 9;
             int end_of_number = req.indexOf("HTTP") - 1;
             String valor = (req.substring(start_of_number, end_of_number));
-            setpoint = valor.toFloat();
+            control_info.setpoint = valor.toFloat();
         }
         else if (req.indexOf("tolerancia=") != -1)
         {
             int start_of_number = req.indexOf("tolerancia=") + 11;
             int end_of_number = req.indexOf("HTTP") - 1;
             String valor = (req.substring(start_of_number, end_of_number));
-            tolerancia = valor.toFloat();
+            control_info.tolerancia = valor.toFloat();
         }
 
         else if (req.indexOf("controle=Manual") != -1)
         {
-            controleAutomatico = false;
-            controleManual = true;
+            control_info.automatic_control = false;
         }
 
         else if (req.indexOf("controle=Automatico") != -1)
         {
-            controleAutomatico = true;
-            controleManual = false;
+            control_info.automatic_control = true;
         }
 
         // Este é o html que iremos retornar para o cliente
@@ -139,27 +131,17 @@ void serverHandler()
         // que ele verifique qual ação deve executar
         // A parte dentro de '<style>' é apenas para modificarmos o visual da página
         // que será exibida, você pode alterá-la como quiser
-        String html_saida;
-        if (saidaRele1)
-        {
-            html_saida = "<p>Saida Ligada</p>";
-        }
-        else
-        {
-            html_saida = "<p>Saida Desligada</p>";
-        }
+        
+        String html_saida = "<p> TODO: reportar dado de saída para SSR </p>";
+        
         String html_controle;
-        if (controleAutomatico)
+        if (control_info.automatic_control)
         {
-            html_controle = "<p>Controle Automatico</p>";
-        }
-        else if (controleManual)
-        {
-            html_controle = "<p>Controle Manual</p>";
+            html_controle = "<p>Controle Automatico: Ligado</p>";
         }
         else
         {
-            html_controle = "<p>Controle Desligado</p>";
+            html_controle = "<p>Controle Automatico: Desligado</p>";
         }
 
         String html_refresh;
@@ -209,53 +191,43 @@ void serverHandler()
             "<body>" +
             html_saida + html_controle +
             "<p>Atraso Pulso " + String(micros_dif) + "</p>"
-                                                      "<p>Resistencia Canal 1: " +
-            String(resistencia, 1) + " ohm</p>"
-                                     "<p>Temperatura Canal 1: " +
-            String(temperatura, 1) + " C</p>"
-                                     "<p>Resistencia Canal 2: " +
-            String(resistencia2, 1) + " ohm</p>"
-                                      "<p>Temperatura Canal 2: " +
-            String(temperatura2, 1) + " C</p>"
-                                      "<p>Setpoint " +
-            String(setpoint, 1) + " C</p>"
-                                  "<p>Tolerancia " +
-            String(tolerancia, 1) + " C</p>"
-                                    "<p>"
-                                    "<a href='?autorefresh=on'><button>Ligar Autorefresh</button></a>  "
-                                    "<a href='?autorefresh=off'><button>Desligar Autorefresh</button></a>"
-                                    "</p>"
-                                    "<p>"
-                                    "<a href='?controle=Manual'><button>Controle Manual</button></a>  "
-                                    "<a href='?controle=Automatico'><button>Controle Automatico</button></a>"
-                                    "</p>"
-                                    "<form>"
-                                    "<div>"
-                                    "<label for='setpoint'>Setpoint de Temperatura: </label>"
-                                    "<input id='setpoint' type='number' name='setpoint' placeholder=" +
-            String(setpoint, 1) + " step='0.1' min='0' max='100' required>"
-                                  "<span class='validity'></span>"
-                                  "<input type='submit'>"
-                                  "</div>"
-                                  "</form>"
+            "<p>Resistencia Canal 1: " + String(sensor_info.resistencia, 1) + " ohm</p>"
+            "<p>Temperatura Canal 1: " + String(sensor_info.temperatura, 1) + " C</p>"
+            "<p>Setpoint " + String(control_info.setpoint, 1) + " C</p>"
+            "<p>Tolerancia " + String(control_info.tolerancia, 1) + " C</p>"
+            "<p>"
+               "<a href='?autorefresh=on'><button>Ligar Autorefresh</button></a>  "
+               "<a href='?autorefresh=off'><button>Desligar Autorefresh</button></a>"
+            "</p>"
+            "<p>"
+               "<a href='?controle=Manual'><button>Controle Manual</button></a>  "
+               "<a href='?controle=Automatico'><button>Controle Automatico</button></a>"
+            "</p>"
+            "<form>"
+               "<div>"
+               "<label for='setpoint'>Setpoint de Temperatura: </label>"
+               "<input id='setpoint' type='number' name='setpoint' placeholder="
+                   + String(control_info.setpoint, 1) + " step='0.1' min='0' max='100' required>"
+               "<span class='validity'></span>"
+               "<input type='submit'>"
+               "</div>"
+            "</form>"
 
-                                  "<form>"
-                                  "<div>"
-                                  "<label for='setpoint'>Tolerancia de Temperatura: </label>"
-                                  "<input id='tolerancia' type='number' name='tolerancia' placeholder=" +
-            String(tolerancia, 1) + " step='0.1' min='0,1' max='100' required>"
-                                    "<span class='validity'></span>"
-                                    "<input type='submit'>"
-                                    "</div>"
-                                    "</form>"
+            "<form>"
+              "<div>"
+                  "<label for='setpoint'>Tolerancia de Temperatura: </label>"
+                  "<input id='tolerancia' type='number' name='tolerancia' placeholder="
+                    + String(control_info.tolerancia, 1) + " step='0.1' min='0,1' max='100' required>"
+                  "<span class='validity'></span>"
+                  "<input type='submit'>"
+              "</div>"
+            "</form>"
 
-                                    "<p><a href='?acao=0'><button>0%</button></a></p>"
-                                    "<p><a href='?acao=1'><button>10%</button></a></p>"
-                                    "</body>"
-                                    "</html>";
-        /*
-
-        */
+            "<p><a href='?acao=0'><button>0%</button></a></p>"
+            "<p><a href='?acao=1'><button>10%</button></a></p>"
+            "</body>"
+            "</html>";
+        
         // Escreve o html no buffer que será enviado para o cliente
         client.print(html);
         // Envia os dados do buffer para o cliente

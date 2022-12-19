@@ -11,11 +11,12 @@
 #include "OTAUpdate.h"
 #include "server.h"
 #include "temperature.h"
-
+#include "control.h"
 
 /* #region VARIABLES DECLARATIONS */
 
 extern bool ota_uploading;
+extern sensor_info_t sensor_info;
 
 bool
     saidaRele2 = false,
@@ -27,18 +28,6 @@ int
     tempoAnterior,
     tempoAtual,
     tempoDif;
-
-float
-    leituraVcc,
-    leituraVcc2,
-    resistencia,
-    resistencia2,
-    temperatura,
-    temperatura2;
-
-volatile float
-    SAIDA_1 = 0.0,
-    SAIDA_2 = 0.0;
 
 volatile bool
     detected = false,
@@ -196,29 +185,16 @@ void loop()
   {
     ArduinoOTA.handle();
   };
+
   serverHandler();
 
-  
   float adcReading = adc.readVoltage(0);
-  resistencia = resistanceFromAdc(adcReading);
-  temperatura = temperatureFromResistance(resistencia);
+  sensor_info.resistencia = resistanceFromAdc(adcReading);
+  sensor_info.temperatura = temperatureFromResistance(sensor_info.resistencia);
   
-  float adcReading2 = adc.readVoltage(0);
-  resistencia2 = resistanceFromAdc(adcReading);
-  temperatura2 = temperatureFromResistance(resistencia);
-
-  if (controleAutomatico)
+  if (control_info.automatic_control)
   {
-    if (saidaRele1 && (temperatura >= (setpoint + tolerancia)))
-    {
-      saidaRele1 = false;
-      digitalWrite(PIN_RELE_1, HIGH);
-    }
-    if (!saidaRele1 && (temperatura <= (setpoint - tolerancia)))
-    {
-      saidaRele1 = true;
-      digitalWrite(PIN_RELE_1, LOW);
-    }
+    update_control_info();
   }
 
   if (flag_100ms)
